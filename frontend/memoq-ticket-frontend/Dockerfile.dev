@@ -1,0 +1,27 @@
+FROM node:18-alpine
+
+# 设置工作目录
+WORKDIR /app
+
+# 设置淘宝npm镜像源以加速依赖安装
+RUN npm config set registry https://registry.npmmirror.com/
+
+# 复制 package.json、package-lock.json 和 .npmrc
+COPY package*.json ./
+COPY .npmrc ./
+
+# 安装依赖
+RUN npm install
+
+# 暴露Vite开发服务器端口
+EXPOSE 3000
+
+# 设置环境变量，确保热重载正常工作
+ENV HOST=0.0.0.0
+ENV PORT=3000
+ENV CHOKIDAR_USEPOLLING=true
+ENV HMR=true
+ENV VITE_HMR_FORCE_CLIENT_PORT=3000
+
+# 启动开发服务器，添加额外的热重载选项
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000", "--hmr", "--force"]

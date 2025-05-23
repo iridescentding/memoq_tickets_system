@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 数据库服务
+  db:
+    image: postgres:14
+    platform: linux/arm64  # 指定 ARM64 平台镜像，适用于 M1 Mac
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=memoq_ticket_system
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis 缓存服务
+  redis:
+    image: redis:7
+    platform: linux/arm64  # 指定 ARM64 平台镜像，适用于 M1 Mac
+    ports:
+      - "6379:6379"
+    restart: always
+    volumes:
+      - redis_data:/data
+
+  # Django 后端服务
+  backend:
+    build: 
+      context: ./backend
+      # 如果在构建时遇到兼容性问题，可以添加以下平台指定
+      # args:
+      #   - BUILDPLATFORM=linux/arm64
+    # 修改卷挂载，避免覆盖容器内的虚拟环境
+    volumes:
+      # - ./backend:/app  # 这行会覆盖容器内的所有内容，包括虚拟环境
+      - ./backend/memoq_ticket_system:/app/memoq_ticket_system  # 只挂载应用代码
+      - ./backend/manage.py:/app/manage.py  # 挂载管理脚本
+      - static_volume:/app/static
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - ./backend/.env  # 使用我们刚创建的环境文件
+    restart: always
+    command: >
+      sh -c ". .venv/bin/activate && 
+              python manage.py migrate &&
+              python manage.py collectstatic --noinput &&
+              gunicorn memoq_ticket_system.wsgi:application --bind 0.0.0.0:8000"
+  # Vue.js 前端服务
+  frontend:
+    build: ./frontend/memoq-ticket-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/memoq-ticket-frontend:/app
+      - /app/node_modules
+    restart: always
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_volume:
+  media_volume:
