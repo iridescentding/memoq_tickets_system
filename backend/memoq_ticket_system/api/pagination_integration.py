@@ -25,6 +25,28 @@ class CustomPageNumberPagination(PageNumberPagination):
         })
 
 
+# 添加views.py中引用的三个分页类
+class StandardResultsSetPagination(CustomPageNumberPagination):
+    """
+    标准结果集分页类
+    """
+    page_size = 20  # 默认每页显示20条
+
+
+class SmallResultsSetPagination(CustomPageNumberPagination):
+    """
+    小结果集分页类
+    """
+    page_size = 10  # 默认每页显示10条
+
+
+class MediumResultsSetPagination(CustomPageNumberPagination):
+    """
+    中等结果集分页类
+    """
+    page_size = 15  # 默认每页显示15条
+
+
 class TicketListPagination(CustomPageNumberPagination):
     """
     工单列表分页类
